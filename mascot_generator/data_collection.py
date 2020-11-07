@@ -1,149 +1,29 @@
+import os
 import sys
+import json
 import xml.etree.ElementTree as ET
 import requests
+from wordfreq import word_frequency
+from wn import WordNet
 
-VEGETABLES = [
-        'Amaranth Leaves',
-        'Arrowroots',
-        'Artichokes',
-        'Arugulas',
-        'Asparaguses',
-        'Bamboo Shoots',
-        'Green Beans',
-        'Beets',
-        'Endives',
-        'Bitter Melons',
-        'Broadbeans',
-        'Broccolis',
-        'Broccoli Rabes',
-        'Brussel Sprouts',
-        'Green Cabbages',
-        'Red Cabbages',
-        'Carrots',
-        'Cassavas',
-        'Cauliflowers',
-        'Celeries',
-        'Chayotes',
-        'Chicories',
-        'Collards',
-        'Corns',
-        'Crooknecks',
-        'Cucumbers',
-        'Daikons',
-        'Dandelion Greens',
-        'Edamames',
-        'Eggplants',
-        'Fennels',
-        'Fiddleheads',
-        'Gingers',
-        'Horseradishes',
-        'Jicamas',
-        'Kales',
-        'Kohlrabis',
-        'Leeks',
-        'Lettuces',
-        'Mushrooms',
-        'Mustard Greens',
-        'Okras',
-        'Red Onions',
-        'Yellow Onions',
-        'Parsnips',
-        'Peas',
-        'Green Peppers',
-        'Red Peppers',
-        'Red Potatoes',
-        'White Potatoes',
-        'Gold Potatoes',
-        'Pumpkins',
-        'Radicchios',
-        'Radishes',
-        'Rutabagas',
-        'Shallots',
-        'Snow Peas',
-        'Sorrels',
-        'Squashes',
-        'Spinaches',
-        'Sweet Potatoes',
-        'Swiss Chards',
-        'Tomatillos',
-        'Tomatoes',
-        'Turnips',
-        'Watercresses',
-        'Zucchinis'
-    ]
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+DATA_DIR = os.path.join(SCRIPT_DIR, 'data')
 
-FRUITS = [
-        'Apples',
-        'Apricots',
-        'Cucumbers',
-        'Pears',
-        'Avocados',
-        'Bananas',
-        'Cherries',
-        'Crowberries',
-        'Currents',
-        'Blackberries',
-        'Oranges',
-        'Blueberries',
-        'Boysenberries',
-        'Breadfruits',
-        'Figs',
-        'Melons',
-        'Cantaloupes',
-        'Gooseberries',
-        'Plums',
-        'Carissas',
-        'Grapes',
-        'Cherimoyas',
-        'Chokecherries',
-        'Clementines',
-        'Coconuts',
-        'Grapes',
-        'Dates',
-        'Durians',
-        'Elderberries',
-        'Feijoas',
-        'Kiwifruits',
-        'Grapefruits',
-        'Guavas',
-        'Huckleberries',
-        'Jackfruits',
-        'Jambolans',
-        'Jujubes',
-        'Limes',
-        'Kiwanos',
-        'Kumquats',
-        'Lemons',
-        'Loganberries',
-        'Longans',
-        'Loquats',
-        'Lychees',
-        'Sapotes',
-        'Mangos',
-        'Mangosteens',
-        'Papayas',
-        'Medlars',
-        'Mulberries',
-        'Nectarines',
-        'Passion Fruits',
-        'Peaches',
-        'Persimmons',
-        'Pineapples',
-        'Plantains',
-        'Pomegrantes',
-        'Pummelos',
-        'Quinces',
-        'Raisins',
-        'Raspberries',
-        'Salmonberries',
-        'Sapodillas',
-        'Sapotes',
-        'Soursops',
-        'Strawberries',
-        'Coconuts',
-        'Watermelons',
-        'Blueberries'
-    ]
+def get_list_file(list_name):
+    return os.path.join(DATA_DIR, list_name + '.json')
+
+def dump_to_file(word_list, list_name):
+    output_file_name = get_list_file(list_name)
+    with open(output_file_name, 'w') as output_file:
+        json.dump(word_list, output_file, indent=2)
+
+def get_adjectives_list():
+    wordnet = WordNet()
+    adjective_synsets = wordnet.all_synsets(pos='s')
+    adjectives_set = set()
+    for synset in adjective_synsets:
+        adjectives_set.update(synset.lemma_names())
+    dump_to_file(list(adjectives_set), 'adjectives')
 
 def fetch_birds_list():
     BIRDS_LIST_URL = 'http://www.worldbirdnames.org/master_ioc-names_xml.xml'
@@ -155,9 +35,46 @@ def parse_birds_list(birds_list_xml):
     species = root.findall('.//species/english_name')
     return [spec.text for spec in species]
 
-def extract_bird_short_names(bird_species_list):
-    short_names = [species_name.split()[-1] for species_name in bird_species_list]
+def get_birds_list():
+    birds_list_xml = fetch_birds_list()
+    birds_list = parse_birds_list(birds_list_xml)
+    dump_to_file(birds_list, 'birds')
+
+def extract_short_names(object_name_list):
+    short_names = [object_name.split()[-1] for object_name in object_name_list]
     return sorted(set(short_names))
+
+def load_word_list(list_name):
+    list_filename = get_list_file(list_name)
+    with open(list_filename, 'r') as list_file:
+        return json.load(list_file)
+
+def get_frequencies(word_list):
+    word_frequencies = { w: word_frequency(w, 'en') for w in word_list }
+    frequency_total = sum([
+        word_freq[1] for word_freq in word_frequencies.items()
+    ])
+    word_frequencies = { w: f / frequency_total for w, f in word_frequencies }
+    return word_frequencies
+
+'''
+Data
+1. Full names (birds, fruits, vegetables)
+2. Nouns / Proper Nouns
+3. Adjectives
+4. Frequency (percentiles)
+
+Sources
+1. Dictionary (POS-tagged)
+2. 1-grams with frequencies
+
+Algorithm
+1. Select adjective in percentile range
+2. Select noun in percentile range
+3. Filter adjectives / nouns with more than X syllables
+4. Select uniformly at random from nouns, adjectives
+5. Filter joined (adjective + noun)
+'''
 
 if __name__ == '__main__':
     birds_list_xml = fetch_birds_list()
