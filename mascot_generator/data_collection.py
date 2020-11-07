@@ -75,24 +75,3 @@ Algorithm
 4. Select uniformly at random from nouns, adjectives
 5. Filter joined (adjective + noun)
 '''
-
-if __name__ == '__main__':
-    birds_list_xml = fetch_birds_list()
-    birds_list = parse_birds_list(birds_list_xml)
-    birds_shortname_list = extract_bird_short_names(birds_list)
-    print(birds_list[0:10])
-    print(birds_shortname_list[0:10])
-
-    # xml_file = sys.argv[1]
-    # page_start, page_end = int(sys.argv[2]), int(sys.argv[3])
-    # with open(xml_file) as f:
-    #     birds_list_contents = f.read()
-    #     birds_list = parse_birds_list(birds_list_contents)
-    #     shortname_birds_list = extract_bird_short_names(birds_list)
-    #     print("***** SPECIES *****")
-    #     print("\n".join(birds_list[page_start:page_end]))
-    #     print("")
-    #     print("***** SHORT NAMES *****")
-    #     print("\n".join(shortname_birds_list[page_start:page_end]))
-
-
