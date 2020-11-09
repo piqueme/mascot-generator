@@ -3,10 +3,19 @@ import data_collection
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Collect mascot generation data')
-    parser.add_argument('type', choices=['birds', 'adjectives'])
+    subparsers = parser.add_subparsers(help='sub-command help', dest='subparser_name')
+
+    collect_parser = subparsers.add_parser('collect')
+
+    generate_parser = subparsers.add_parser('gen')
+    generate_parser.add_argument('type', choices=['birds', 'veggies', 'fruits'])
+
     args = parser.parse_args()
-    collection_type = args.type
-    if collection_type == 'birds':
-        data_collection.get_birds_list()
-    if collection_type == 'adjectives':
-        data_collection.get_adjectives_list() 
+
+    if (args.subparser_name == 'collect'):
+        data_collection.collect_all_data()
+        print('Completed collecting data!')
+
+    if (args.subparser_name == 'gen'):
+        generated_result = data_collection.generate(noun=args.type)
+        print(generated_result)
