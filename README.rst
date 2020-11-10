@@ -9,9 +9,10 @@ Overview
 This is a dead simple **mascot generator**.
 It creates mascots by randomly combining adjectives and nouns.
 Some options are provided for guiding the generation:
-  1. Limit the number of syllables in adjectives, nouns, or total
-  2. Pick from different types of mascots: birds, fruits, veggies...
-  3. Control the "rarety" of adjectives and nouns
+
+1. Limit the number of syllables in adjectives, nouns, or total
+2. Pick from different types of mascots: birds, fruits, veggies...
+3. Control the "rarety" of adjectives and nouns
 
 #############
 Install
