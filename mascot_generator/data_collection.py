@@ -1,8 +1,6 @@
 import os
-import random
 import sys
 import sqlite3
-import json
 import xml.etree.ElementTree as ET
 import requests
 import re
@@ -13,68 +11,6 @@ from wn import WordNet
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 DATA_DIR = os.path.join(SCRIPT_DIR, 'data')
 NUMERIC_PATTERN = re.compile('[0-9]+')
-
-'''
-    noun: birds | veggies | fruits
-'''
-def generate(
-    noun='veggies',
-    adjective_frequency_percentile_range=[0.4, 0.8],
-    noun_frequency_percentile_range=[0, 1],
-    max_adjective_syllable_count=3,
-    max_noun_syllable_count=3,
-    max_total_syllable_count=4):
-
-    connection = sqlite3.connect('mascotgen.db')
-    with connection:
-        cursor = connection.cursor()
-        cursor.execute('''
-            WITH adjective_pct AS (
-                SELECT
-                    *,
-                    PERCENT_RANK() OVER(
-                        ORDER BY probability
-                    ) percentile
-                FROM adjectives
-                WHERE syllables <= ?
-            )
-            SELECT *
-            FROM adjective_pct
-            WHERE percentile >= ?
-            AND percentile <= ?
-            ''',
-            (
-                max_adjective_syllable_count,
-                adjective_frequency_percentile_range[0],
-                adjective_frequency_percentile_range[1]
-            )
-        )
-        adjectives = cursor.fetchall()
-        cursor.execute('''
-            WITH nouns_pct AS (
-                SELECT
-                    *,
-                    PERCENT_RANK() OVER(
-                        ORDER BY probability
-                    ) percentile
-                FROM %s
-                WHERE syllables <= ?
-            )
-            SELECT *
-            FROM nouns_pct
-            WHERE percentile >= ?
-            AND percentile <= ?
-            ''' % (noun,),
-            (
-                max_noun_syllable_count,
-                noun_frequency_percentile_range[0],
-                noun_frequency_percentile_range[1]
-            )
-        )
-        nouns = cursor.fetchall()
-        random_adjective = adjectives[random.randrange(0, len(adjectives))]
-        random_noun = nouns[random.randrange(0, len(nouns))]
-        return random_adjective[0] + ' ' + random_noun[0]
 
 def collect_adjectives_list():
     wordnet = WordNet()
@@ -317,39 +253,3 @@ def collect_all_data(db_name="mascotgen.db"):
         cursor.executemany('INSERT INTO birds VALUES (?, ?, ?, ?)', bird_data_rows)
         cursor.executemany('INSERT INTO veggies VALUES (?, ?, ?, ?)', veggie_data_rows)
         cursor.executemany('INSERT INTO fruits VALUES (?, ?, ?, ?)', fruit_data_rows)
-
-'''
-DATA COLLECTION
-[Adjectives] WordNet -> Adjectives -> Frequencies -> Percentiles -> Syllables
-[Birds] URL -> Birds (map Shorten) -> Frequencies -> Percentiles -> Syllables
-[Vegetables] Manual -> Vegetables (map Shorten) -> Frequencies -> Percentiles
-'''
-
-'''
-Data
-1. Full names (birds, fruits, vegetables)
-2. Nouns / Proper Nouns
-3. Adjectives
-4. Frequency (percentiles)
-
-Sources
-1. Dictionary (POS-tagged)
-2. 1-grams with frequencies
-
-Algorithm
-1. Select adjective in percentile range
-2. Select noun in percentile range
-3. Filter adjectives / nouns with more than X syllables
-4. Select uniformly at random from nouns, adjectives
-5. Filter joined (adjective + noun)
-
-PARAMETERS
-adjective_frequency_percentile_range
-noun_frequency_percentile_range
-max_adjective_syllable_count
-max_noun_syllable_count
-max_total_syllable_count
-
-TABLE
-word | type | frequency | syllables | isComposite
-'''
